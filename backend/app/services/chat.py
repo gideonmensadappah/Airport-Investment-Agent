@@ -105,7 +105,7 @@ class ChatService:
             if state is None:
                 raise UnsupportedQuestionError(
                     _concise_answer(
-                        response.text,
+                        "" if response.incomplete else response.text,
                         "Please specify an airport analysis request.",
                     )
                 )
@@ -113,7 +113,10 @@ class ChatService:
             return self._to_chat_response(
                 state.last_result,
                 conversation_id,
-                answer=_concise_answer(response.text, state.last_result.summary),
+                answer=_concise_answer(
+                    "" if response.incomplete else response.text,
+                    state.last_result.summary,
+                ),
             )
 
         if len(response.function_calls) != 1:
@@ -136,7 +139,10 @@ class ChatService:
         return self._to_chat_response(
             result,
             conversation_id,
-            answer=_concise_answer(final_response.text, result.summary),
+            answer=_concise_answer(
+                "" if final_response.incomplete else final_response.text,
+                result.summary,
+            ),
         )
 
     @staticmethod

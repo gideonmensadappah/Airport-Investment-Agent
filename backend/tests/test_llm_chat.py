@@ -215,6 +215,44 @@ class LLMChatTests(unittest.TestCase):
             "23.1 points above SNA.",
         )
 
+    def test_incomplete_model_explanation_falls_back_to_deterministic_summary(self) -> None:
+        llm = FakeResponsesClient(
+            [
+                ModelResponse(
+                    id="resp-tool",
+                    text="",
+                    function_calls=(
+                        FunctionCall(
+                            call_id="call-1",
+                            name="compare_congestion",
+                            arguments='{"airports":["LAX","SNA"]}',
+                        ),
+                    ),
+                ),
+                ModelResponse(
+                    id="resp-final",
+                    text="The analysis tool finds LAX has the stronger signal, with higher (",
+                    function_calls=(),
+                    incomplete=True,
+                ),
+            ]
+        )
+        service = ChatService(
+            self.analysis,
+            self.demand,
+            self.long_haul,
+            self.router,
+            llm=llm,
+        )
+
+        response = service.answer("Compare LAX and SNA congestion.")
+
+        self.assertEqual(
+            response.answer,
+            "LAX has the stronger congestion signal at 62.5/100, "
+            "23.1 points above SNA.",
+        )
+
     def test_model_explanation_is_limited_to_two_sentences(self) -> None:
         llm = FakeResponsesClient(
             [

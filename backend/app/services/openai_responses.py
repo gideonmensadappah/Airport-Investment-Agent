@@ -119,6 +119,7 @@ class ModelResponse:
     id: str
     text: str
     function_calls: tuple[FunctionCall, ...]
+    incomplete: bool = False
 
 
 class OpenAIResponsesClient:
@@ -168,7 +169,7 @@ class OpenAIResponsesClient:
                 "tools": TOOLS,
                 "tool_choice": "auto",
                 "parallel_tool_calls": False,
-                "max_output_tokens": 400,
+                "max_output_tokens": 800,
             }
         )
 
@@ -222,4 +223,5 @@ def _parse_response(body: dict[str, Any]) -> ModelResponse:
         id=response_id,
         text="\n\n".join(text_parts),
         function_calls=tuple(calls),
+        incomplete=body.get("status") == "incomplete",
     )
