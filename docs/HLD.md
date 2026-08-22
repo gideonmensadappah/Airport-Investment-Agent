@@ -31,6 +31,11 @@ The MVP is an opportunity-screening tool, not a complete investment valuation. I
 
 The system separates conversational reasoning from data retrieval and numerical analysis. The chat interface sends each request to the backend, where the agent selects a typed tool. Data adapters retrieve and normalize public aviation data, and deterministic services calculate the requested metric or ranking. The LLM then explains the structured result without changing it.
 
+The implementation uses the OpenAI Responses API with strict function schemas.
+It preserves response context by conversation ID for follow-up questions and
+caps a request at one analysis tool call. If OpenAI is not configured or is
+temporarily unavailable, the deterministic intent router remains the fallback.
+
 | Component | Responsibility |
 | --- | --- |
 | Chat interface | Collects questions and displays answers, KPI breakdowns, sources, assumptions, and limitations. |

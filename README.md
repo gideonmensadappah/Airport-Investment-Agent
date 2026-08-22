@@ -18,6 +18,11 @@ is included in the runtime image; the 5+ GB raw source file is never copied
 into the image. Live AeroDataBox enrichment is optional and falls back to the
 bundled metrics when no API key is configured.
 
+OpenAI's Responses API provides the conversational orchestration layer. The
+model selects one of the typed analysis tools and explains its structured
+output; all metrics and scores remain deterministic. When no OpenAI key is
+configured, the API falls back to the original rule-based intent router.
+
 
 ## Run the Stage 1 flow
 
@@ -49,6 +54,10 @@ python -m uvicorn app.main:app --reload --port 8000
 ```
 
 Verify the API at `http://127.0.0.1:8000/api/v1/health`.
+
+To enable LLM orchestration locally, copy `backend/.env.example` to
+`backend/.env` and set `OPENAI_API_KEY`. Keep this server-side file out of Git;
+never expose the key through a `VITE_` frontend variable.
 
 ### Terminal 2 - client
 
@@ -125,6 +134,9 @@ Verify `http://127.0.0.1:8000/api/v1/health`.
    - `airport-investment-agent-api`, a free Docker web service.
 4. Optionally add `AERODATABOX_API_KEY` to the API service as a secret
    environment variable. Without it, the bundled fallback data remains usable.
+5. Set the prompted `OPENAI_API_KEY` secret on the API service to enable LLM
+   tool selection and conversational explanations. Without it, deterministic
+   routing remains available.
 
 The Blueprint passes each service's generated public URL to the other service:
 the frontend receives `VITE_API_BASE_URL`, and the API receives the exact CORS

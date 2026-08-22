@@ -8,6 +8,7 @@ from app.services.analysis import AnalysisService
 from app.services.chat import ChatService, UnsupportedQuestionError
 from app.services.demand import DemandService
 from app.services.intent_router import IntentRouter
+from app.services.openai_responses import OpenAIResponsesClient
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -30,7 +31,22 @@ airport_resolver = AirportResolver(
     supported_regions=repository.supported_regions,
 )
 intent_router = IntentRouter(airport_resolver)
-chat_service = ChatService(analysis_service, demand_service, intent_router)
+openai_client = (
+    OpenAIResponsesClient(
+        api_key=settings.openai_api_key,
+        model=settings.openai_model,
+        base_url=settings.openai_base_url,
+        timeout_seconds=settings.openai_timeout_seconds,
+    )
+    if settings.use_openai and settings.openai_api_key
+    else None
+)
+chat_service = ChatService(
+    analysis_service,
+    demand_service,
+    intent_router,
+    llm=openai_client,
+)
 
 
 @router.post("", response_model=ChatResponse)

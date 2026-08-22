@@ -193,7 +193,7 @@ function App() {
                   <span className="message-avatar agent-avatar">A</span>
                   <div className="answer">
                     <div className="answer-head">
-                      <div><p className="author">AirIntel Agent</p><small>Deterministic tool complete</small></div>
+                      <div><p className="author">AirIntel Agent</p><small>AI-orchestrated · deterministic analysis</small></div>
                       <span className={`confidence confidence-${turn.response.confidence}`}>
                         <i /> {turn.response.confidence} confidence
                       </span>
@@ -247,7 +247,7 @@ function App() {
             />
             <button type="submit" aria-label="Send message" disabled={loading}>↑</button>
           </form>
-          <p>Uses a versioned data snapshot with optional live AeroDataBox enrichment.</p>
+          <p>AI selects typed tools; scores come from deterministic aviation data analysis.</p>
         </section>
       </main>
     </div>

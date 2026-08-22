@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     aerodatabox_rapidapi_host: str = "aerodatabox.p.rapidapi.com"
     aerodatabox_timeout_seconds: float = 3.0
     use_aerodatabox: bool = True
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-5-mini"
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_timeout_seconds: float = 30.0
+    use_openai: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

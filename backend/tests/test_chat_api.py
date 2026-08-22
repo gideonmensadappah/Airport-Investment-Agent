@@ -2,12 +2,16 @@ import unittest
 
 from fastapi.testclient import TestClient
 
+from app.api.routes.chat import chat_service
 from app.main import app
 
 
 class ChatApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        # API contract tests must never depend on a developer's local key or
+        # make paid external model calls.
+        chat_service.llm = None
         cls.client = TestClient(app)
 
     def test_compares_lax_and_santa_ana_end_to_end(self) -> None:

@@ -25,3 +25,13 @@ Copy `.env.example` to `.env` and adjust it as needed. Important settings:
 - `AIRPORT_DATABASE_FILE`: path to the immutable SQLite snapshot.
 - `AERODATABOX_API_KEY`: optional RapidAPI secret for live enrichment.
 - `USE_AERODATABOX`: disables all live calls when set to `false`.
+- `OPENAI_API_KEY`: optional server-side secret that enables Responses API
+  orchestration and conversational follow-ups.
+- `OPENAI_MODEL`: Responses API model name; defaults to `gpt-5-mini`.
+- `USE_OPENAI`: set to `false` to force the deterministic intent router even
+  when a key is present.
+
+The LLM may select and explain a typed tool, but it does not calculate scores.
+The API validates tool arguments and returns the unchanged deterministic tool
+result alongside the model's explanation. Conversation links are kept in a
+bounded in-memory cache for this single-instance MVP.
