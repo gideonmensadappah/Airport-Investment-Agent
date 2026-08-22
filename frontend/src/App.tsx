@@ -5,41 +5,95 @@ import { AnalysisResults } from "./components/AnalysisResults";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { sendChatMessage } from "./services/chatApi";
-import type { ChatResponse } from "./types/analysis";
+import {
+  createLocalChat,
+  loadChatWorkspace,
+  saveChatWorkspace,
+  titleFromQuestion,
+} from "./services/chatStorage";
+import type { ChatTurn, LocalChat } from "./types/chat";
 
 const examplePrompt = "Compare congestion levels at LAX and Santa Ana airport.";
 
+type ChatWorkspace = {
+  activeChatId: string;
+  chats: LocalChat[];
+};
+
+function initialWorkspace(): ChatWorkspace {
+  const savedWorkspace = loadChatWorkspace();
+  const chats = savedWorkspace.chats.length > 0
+    ? savedWorkspace.chats
+    : [createLocalChat()];
+  const hasSavedActiveChat = chats.some(chat => chat.id === savedWorkspace.activeChatId);
+  return {
+    activeChatId: hasSavedActiveChat ? savedWorkspace.activeChatId! : chats[0].id,
+    chats,
+  };
+}
+
 function App() {
+  const [workspace, setWorkspace] = useState<ChatWorkspace>(initialWorkspace);
   const [draft, setDraft] = useState(examplePrompt);
-  const [questions, setQuestions] = useState<Array<string>>([]);
-  const [responses, setResponse] = useState<Array<ChatResponse>>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-
   const latestAnswerRef = useRef<HTMLElement>(null);
+
+  const activeChat = workspace.chats.find(chat => chat.id === workspace.activeChatId)
+    ?? workspace.chats[0];
+  const successfulTurns = activeChat.turns.filter(
+    (turn): turn is ChatTurn & { response: NonNullable<ChatTurn["response"]> } => (
+      turn.status === "success" && turn.response !== undefined
+    ),
+  );
+  const latestResponse = successfulTurns.at(-1)?.response;
+
+  useEffect(() => {
+    saveChatWorkspace(workspace.activeChatId, workspace.chats);
+  }, [workspace.activeChatId, workspace.chats]);
 
   async function submitQuestion(message: string) {
     const trimmed = message.trim();
     if (!trimmed || loading) return;
 
-    setQuestions(prev => [...prev, trimmed]);
+    const chatId = activeChat.id;
+    const conversationId = activeChat.conversationId;
+    const turnId = crypto.randomUUID();
+    const pendingTurn: ChatTurn = {
+      id: turnId,
+      question: trimmed,
+      status: "pending",
+    };
+
+    setWorkspace(previous => updateChat(previous, chatId, chat => ({
+      ...chat,
+      title: chat.turns.length === 0 ? titleFromQuestion(trimmed) : chat.title,
+      updatedAt: new Date().toISOString(),
+      turns: [...chat.turns, pendingTurn],
+    })));
+    setDraft("");
     setLoading(true);
-    setError(null);
 
     try {
-      const chatResponse = await sendChatMessage(trimmed, conversationId);
-      setResponse(prev => [...prev, chatResponse]);
-      setConversationId(chatResponse.conversation_id);
-      setDraft("");
+      const response = await sendChatMessage(trimmed, conversationId);
+      setWorkspace(previous => updateChat(previous, chatId, chat => ({
+        ...chat,
+        conversationId: response.conversation_id,
+        updatedAt: new Date().toISOString(),
+        turns: chat.turns.map(turn => (
+          turn.id === turnId ? { ...turn, status: "success", response } : turn
+        )),
+      })));
     } catch (requestError) {
-      setResponse([]);
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "The analysis could not be completed.",
-      );
+      const error = requestError instanceof Error
+        ? requestError.message
+        : "The analysis could not be completed.";
+      setWorkspace(previous => updateChat(previous, chatId, chat => ({
+        ...chat,
+        updatedAt: new Date().toISOString(),
+        turns: chat.turns.map(turn => (
+          turn.id === turnId ? { ...turn, status: "error", error } : turn
+        )),
+      })));
     } finally {
       setLoading(false);
     }
@@ -50,17 +104,23 @@ function App() {
     void submitQuestion(draft);
   }
 
-  function resetConversation() {
+  function createNewAnalysis() {
+    const chat = createLocalChat();
+    setWorkspace(previous => ({
+      activeChatId: chat.id,
+      chats: [chat, ...previous.chats],
+    }));
     setDraft(examplePrompt);
-    setQuestions([]);
-    setResponse([]);
-    setConversationId(null);
-    setError(null);
+  }
+
+  function selectChat(chatId: string) {
+    setWorkspace(previous => ({ ...previous, activeChatId: chatId }));
+    setDraft("");
   }
 
   useEffect(() => {
     const answer = latestAnswerRef.current;
-    if (!answer || responses.length === 0) return;
+    if (!answer || successfulTurns.length === 0) return;
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const headerOffset = 94;
@@ -86,17 +146,22 @@ function App() {
 
     animationFrame = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(animationFrame);
-  }, [responses.length]);
+  }, [activeChat.id, successfulTurns.length]);
 
   return (
     <div className="workspace">
-      <Sidebar onNewAnalysis={resetConversation} />
+      <Sidebar
+        activeChatId={activeChat.id}
+        chats={workspace.chats}
+        onNewAnalysis={createNewAnalysis}
+        onSelectChat={selectChat}
+      />
 
       <main>
-        <Header title={responses[responses.length - 1]?.title} />
+        <Header title={latestResponse?.title ?? activeChat.title} />
 
         <section className="messages" aria-label="Conversation" aria-live="polite">
-          {!questions.length && (
+          {activeChat.turns.length === 0 && (
             <section className="empty-state">
               <span className="agent-avatar message-avatar">A</span>
               <h2>Hi, let's get started</h2>
@@ -113,47 +178,56 @@ function App() {
             </section>
           )}
 
+          {activeChat.turns.map((turn, index) => (
+            <Fragment key={turn.id}>
+              <article className="message">
+                <span className="message-avatar user-avatar">DA</span>
+                <div><p className="author">You</p><p className="user-bubble">{turn.question}</p></div>
+              </article>
 
-
-          {responses.length > 0 && (
-            responses.map((response, index) => (
-              <Fragment key={`${response.conversation_id}-${index}`}>
-                {questions[index] && (
-                  <article className="message">
-                    <span className="message-avatar user-avatar">DA</span>
-                    <div><p className="author">You</p><p className="user-bubble">{questions[index]}</p></div>
-                  </article>
-                )}
-
+              {turn.status === "success" && turn.response && (
                 <article
                   className="message agent-message"
-                  ref={index === responses.length - 1 ? latestAnswerRef : undefined}
+                  ref={index === activeChat.turns.length - 1 ? latestAnswerRef : undefined}
                 >
                   <span className="message-avatar agent-avatar">A</span>
                   <div className="answer">
                     <div className="answer-head">
                       <div><p className="author">AirIntel Agent</p><small>Deterministic tool complete</small></div>
-                      <span className={`confidence confidence-${response.confidence}`}>
-                        <i /> {response.confidence} confidence
+                      <span className={`confidence confidence-${turn.response.confidence}`}>
+                        <i /> {turn.response.confidence} confidence
                       </span>
                     </div>
-                    <p className="summary">{response.answer}</p>
+                    <p className="summary">{turn.response.answer}</p>
 
-                    <AnalysisResults response={response} />
+                    <AnalysisResults response={turn.response} />
                     <AnalysisDetails
-                      assumptions={response.assumptions}
-                      limitations={response.limitations}
-                      sources={response.sources}
+                      assumptions={turn.response.assumptions}
+                      limitations={turn.response.limitations}
+                      sources={turn.response.sources}
                     />
                   </div>
                 </article>
-              </Fragment>
-            ))
-          )}
+              )}
+
+              {turn.status === "error" && (
+                <article className="message agent-message">
+                  <span className="message-avatar agent-avatar">A</span>
+                  <div className="turn-error" role="alert">
+                    <p className="author">AirIntel Agent</p>
+                    <p>{turn.error}</p>
+                  </div>
+                </article>
+              )}
+            </Fragment>
+          ))}
         </section>
 
-        {loading && <p className="loading-state">loading...</p>}
-        {error && <p className="error-state" role="alert">{error}</p>}
+        {loading && (
+          <p className="loading-state">
+            Analyzing… The free API may take up to a minute to wake up.
+          </p>
+        )}
 
         <section className="composer-area">
           <div className="suggestions">
@@ -173,11 +247,26 @@ function App() {
             />
             <button type="submit" aria-label="Send message" disabled={loading}>↑</button>
           </form>
-          <p>Current stage uses a bundled snapshot. Live AeroDataBox integration comes in soon.</p>
+          <p>Uses a versioned data snapshot with optional live AeroDataBox enrichment.</p>
         </section>
       </main>
     </div>
   );
+}
+
+function updateChat(
+  workspace: ChatWorkspace,
+  chatId: string,
+  update: (chat: LocalChat) => LocalChat,
+): ChatWorkspace {
+  const chat = workspace.chats.find(item => item.id === chatId);
+  if (!chat) return workspace;
+
+  const updatedChat = update(chat);
+  return {
+    ...workspace,
+    chats: [updatedChat, ...workspace.chats.filter(item => item.id !== chatId)],
+  };
 }
 
 export default App;

@@ -40,6 +40,41 @@ The system separates conversational reasoning from data retrieval and numerical 
 | Scoring engine | Calculates normalized KPI components and deterministic rankings. |
 | Conversation state | Stores previously discussed airports, region, metric, and period for follow-up questions. |
 
+## Deployment Topology
+
+The free demo deployment keeps static delivery separate from backend compute:
+
+```text
+Browser
+  -> Render Static Site (React/Vite CDN)
+  -> Render Free Web Service (Dockerized FastAPI)
+       -> immutable SQLite demand snapshot
+       -> bundled airport metrics
+       -> optional AeroDataBox enrichment
+```
+
+The separation keeps the interface available while Render's free API instance
+is asleep. The frontend receives the API's generated public URL at build time,
+and the API permits only the generated frontend origin through CORS. Both
+services are declared in the repository's `render.yaml` Blueprint.
+
+Docker packages only the API. Static assets remain in Render's CDN instead of
+being coupled to the API lifecycle.
+
+## Data Lifecycle
+
+The multi-gigabyte DB1C source file is an offline pipeline input, not a runtime
+dependency. `backend/scripts/build_airport_database.py` validates, aggregates,
+and records provenance before producing the much smaller
+`data/airport_data.db` read model. The generated snapshot is versioned with the
+application and copied into the API image.
+
+Runtime connections use SQLite read-only immutable mode. No user or application
+state is written to the container filesystem, so Render's ephemeral free-tier
+filesystem does not create a durability requirement. A future product that
+needs mutable shared data should introduce a managed database rather than make
+the container-local SQLite file writable.
+
 # 4. Agent Workflow
 
 1. Interpret the user’s request and determine whether it requires metrics, comparison, ranking, or clarification.

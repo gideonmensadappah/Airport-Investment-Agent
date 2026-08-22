@@ -1,0 +1,15 @@
+.git
+.github
+.codex
+.agents
+frontend
+backend/.env
+backend/.venv
+backend/tests
+backend/scripts
+**/__pycache__
+**/*.pyc
+data/raw
+data/processed
+data/*.tmp
+tmp

@@ -22,9 +22,9 @@ aerodatabox = AeroDataBoxClient(
 analysis_service = AnalysisService(
     repository=repository,
     aerodatabox=aerodatabox,
-    use_live_data=True,
+    use_live_data=settings.use_aerodatabox,
 )
-demand_service = DemandService()
+demand_service = DemandService(database_file=settings.airport_database_file)
 airport_resolver = AirportResolver(
     supported_codes=repository.supported_codes,
     supported_regions=repository.supported_regions,

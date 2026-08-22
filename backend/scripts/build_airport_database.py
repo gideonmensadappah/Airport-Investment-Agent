@@ -181,7 +181,7 @@ def build_database(
             metadata = {
                 "schema_version": "1",
                 "status": "complete",
-                "source_file": str(input_file),
+                "source_file": input_file.name,
                 "source_size_bytes": str(input_file.stat().st_size),
                 "imported_at_utc": datetime.now(timezone.utc).isoformat(),
                 "rows_read": str(stats["rows_read"]),

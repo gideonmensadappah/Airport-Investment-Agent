@@ -12,6 +12,7 @@ frontend/dist/
 data/raw/
 data/processed/
 data/*.db
+!data/airport_data.db
 data/*.db.tmp
 tmp/
 .pnpm-store/

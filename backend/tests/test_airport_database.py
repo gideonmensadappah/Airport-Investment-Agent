@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,6 +7,7 @@ from pathlib import Path
 from scripts.build_airport_database import build_database
 
 from app.services.demand import DemandService
+from db.database import get_connection
 
 
 class AirportDatabaseTests(unittest.TestCase):
@@ -57,6 +59,15 @@ class AirportDatabaseTests(unittest.TestCase):
 
             lax_result = service.get_unmet_demand("LAX")
             self.assertEqual(lax_result[0].destination, "BOS")
+
+            with self.assertRaises(sqlite3.OperationalError):
+                connection = get_connection(database)
+                try:
+                    connection.execute(
+                        "INSERT INTO dataset_metadata VALUES ('write_test', 'blocked')"
+                    )
+                finally:
+                    connection.close()
 
 
 if __name__ == "__main__":

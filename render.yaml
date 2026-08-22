@@ -1,0 +1,46 @@
+services:
+  - type: web
+    runtime: docker
+    name: airport-investment-agent-api
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: CORS_ALLOWED_ORIGINS
+        fromService:
+          type: web
+          name: airport-investment-agent-web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: USE_AERODATABOX
+        value: "true"
+
+  - type: web
+    runtime: static
+    name: airport-investment-agent-web
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: airport-investment-agent-api
+          envVarKey: RENDER_EXTERNAL_URL
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

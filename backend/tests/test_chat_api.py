@@ -25,6 +25,28 @@ class ChatApiTests(unittest.TestCase):
         self.assertTrue(payload["limitations"])
         self.assertEqual(payload["sources"][0]["name"], "Bundled MVP airport metrics")
 
+    def test_health_confirms_the_data_snapshot_is_ready(self) -> None:
+        response = self.client.get("/api/v1/health")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok", "data": "ready"})
+
+    def test_allows_the_local_frontend_origin(self) -> None:
+        response = self.client.options(
+            "/api/v1/chat",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["access-control-allow-origin"],
+            "http://localhost:5173",
+        )
+
     def test_reuses_conversation_id(self) -> None:
         response = self.client.post(
             "/api/v1/chat",
