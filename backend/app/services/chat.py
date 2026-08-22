@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from collections import OrderedDict
 from dataclasses import dataclass
 from threading import RLock
@@ -103,13 +104,16 @@ class ChatService:
         if not response.function_calls:
             if state is None:
                 raise UnsupportedQuestionError(
-                    response.text or "Please specify an airport analysis request."
+                    _concise_answer(
+                        response.text,
+                        "Please specify an airport analysis request.",
+                    )
                 )
             self._save_state(conversation_id, response.id, state.last_result)
             return self._to_chat_response(
                 state.last_result,
                 conversation_id,
-                answer=response.text or state.last_result.summary,
+                answer=_concise_answer(response.text, state.last_result.summary),
             )
 
         if len(response.function_calls) != 1:
@@ -120,7 +124,10 @@ class ChatService:
         final_response = self.llm.submit_tool_output(
             previous_response_id=response.id,
             call_id=response.function_calls[0].call_id,
-            output=result.model_dump_json(),
+            output=json.dumps(
+                _model_tool_output(result),
+                separators=(",", ":"),
+            ),
         )
         if final_response.function_calls:
             raise OpenAIResponsesError("The model exceeded the one-tool-call limit.")
@@ -129,7 +136,7 @@ class ChatService:
         return self._to_chat_response(
             result,
             conversation_id,
-            answer=final_response.text or result.summary,
+            answer=_concise_answer(final_response.text, result.summary),
         )
 
     @staticmethod
@@ -215,3 +222,66 @@ class ChatService:
             self._conversations.move_to_end(conversation_id)
             while len(self._conversations) > self.max_conversations:
                 self._conversations.popitem(last=False)
+
+
+def _model_tool_output(result: AnalysisResult) -> dict:
+    """Expose only fields relevant to the selected analysis tool."""
+    output: dict = {
+        "tool": result.tool,
+        "summary": result.summary,
+        "confidence": result.confidence,
+    }
+    if isinstance(result, DemandAnalysisResponse):
+        output["origin"] = result.origin
+        output["results"] = [
+            {
+                "destination": item.destination,
+                "score": item.score,
+                "connecting_passengers": item.connecting_passengers,
+                "connecting_share": item.connecting_share,
+            }
+            for item in result.results
+        ]
+    elif isinstance(result, LongHaulAnalysisResponse):
+        output.update(
+            {
+                "origin": result.origin,
+                "long_haul_share_pct": result.long_haul_share_pct,
+                "threshold_miles": result.threshold_miles,
+                "coverage_pct": result.coverage_pct,
+            }
+        )
+    elif result.tool == "compare_congestion":
+        output["results"] = [
+            {
+                "code": item.code,
+                "score": item.score,
+                "average_departure_delay_minutes": (
+                    item.metrics.average_departure_delay_minutes
+                ),
+                "cancellation_rate_pct": item.metrics.cancellation_rate_pct,
+            }
+            for item in result.results
+        ]
+    else:
+        output["results"] = [
+            {
+                "code": item.code,
+                "score": item.score,
+                "component_scores": item.component_scores.model_dump(),
+            }
+            for item in result.results
+        ]
+    return output
+
+
+def _concise_answer(text: str, fallback: str) -> str:
+    """Keep model prose compact; fall back to the deterministic summary."""
+    compact = " ".join(text.split())
+    if not compact:
+        return fallback
+    sentences = re.split(r"(?<=[.!?])\s+", compact)
+    candidate = " ".join(sentences[:2])
+    if len(candidate) > 420 or len(candidate.split()) > 70:
+        return fallback
+    return candidate

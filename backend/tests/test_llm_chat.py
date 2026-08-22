@@ -1,6 +1,6 @@
+import json
 import unittest
 
-from app.models.analysis import AnalysisResponse
 from app.services.airport_data import AeroDataBoxClient, AirportRepository
 from app.services.airport_resolver import AirportResolver
 from app.services.analysis import AnalysisService
@@ -88,8 +88,15 @@ class LLMChatTests(unittest.TestCase):
         self.assertEqual(response.conversation_id, "conversation-1")
         self.assertIn("stronger operational congestion", response.answer)
         self.assertEqual(llm.tool_outputs[0][0:2], ("resp-tool", "call-1"))
-        parsed_output = AnalysisResponse.model_validate_json(llm.tool_outputs[0][2])
-        self.assertEqual({item.code for item in parsed_output.results}, {"LAX", "SFO"})
+        parsed_output = json.loads(llm.tool_outputs[0][2])
+        self.assertEqual(parsed_output["tool"], "compare_congestion")
+        self.assertEqual(
+            {item["code"] for item in parsed_output["results"]},
+            {"LAX", "SFO"},
+        )
+        self.assertNotIn("demand_growth_pct", llm.tool_outputs[0][2])
+        self.assertNotIn("capacity_pressure_pct", llm.tool_outputs[0][2])
+        self.assertNotIn("long_haul_share_pct", llm.tool_outputs[0][2])
 
     def test_follow_up_reuses_response_context_and_structured_result(self) -> None:
         llm = FakeResponsesClient(
@@ -170,6 +177,82 @@ class LLMChatTests(unittest.TestCase):
         self.assertEqual(response.origin, "ANC")
         self.assertEqual(response.long_haul_share_pct, 19.7)
         self.assertIn("19.7%", response.answer)
+
+    def test_overlong_model_explanation_falls_back_to_deterministic_summary(self) -> None:
+        llm = FakeResponsesClient(
+            [
+                ModelResponse(
+                    id="resp-tool",
+                    text="",
+                    function_calls=(
+                        FunctionCall(
+                            call_id="call-1",
+                            name="compare_congestion",
+                            arguments='{"airports":["LAX","SNA"]}',
+                        ),
+                    ),
+                ),
+                ModelResponse(
+                    id="resp-final",
+                    text=" ".join(["irrelevant"] * 100),
+                    function_calls=(),
+                ),
+            ]
+        )
+        service = ChatService(
+            self.analysis,
+            self.demand,
+            self.long_haul,
+            self.router,
+            llm=llm,
+        )
+
+        response = service.answer("Compare LAX and SNA congestion.")
+
+        self.assertEqual(
+            response.answer,
+            "LAX has the stronger congestion signal at 62.5/100, "
+            "23.1 points above SNA.",
+        )
+
+    def test_model_explanation_is_limited_to_two_sentences(self) -> None:
+        llm = FakeResponsesClient(
+            [
+                ModelResponse(
+                    id="resp-tool",
+                    text="",
+                    function_calls=(
+                        FunctionCall(
+                            call_id="call-1",
+                            name="compare_congestion",
+                            arguments='{"airports":["LAX","SNA"]}',
+                        ),
+                    ),
+                ),
+                ModelResponse(
+                    id="resp-final",
+                    text=(
+                        "LAX has the stronger signal. Confidence is low. "
+                        "Would you like an unsupported follow-up?"
+                    ),
+                    function_calls=(),
+                ),
+            ]
+        )
+        service = ChatService(
+            self.analysis,
+            self.demand,
+            self.long_haul,
+            self.router,
+            llm=llm,
+        )
+
+        response = service.answer("Compare LAX and SNA congestion.")
+
+        self.assertEqual(
+            response.answer,
+            "LAX has the stronger signal. Confidence is low.",
+        )
 
 
 if __name__ == "__main__":
