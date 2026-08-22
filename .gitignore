@@ -1,0 +1,27 @@
+# Python
+backend/.venv/
+backend/.env
+**/__pycache__/
+*.py[cod]
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Local data and generated files
+data/raw/
+data/processed/
+data/*.db
+data/*.db.tmp
+tmp/
+.pnpm-store/
+
+# Local exploratory scripts
+backend/scripts/test_dest.py
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+*.tsbuildinfo
