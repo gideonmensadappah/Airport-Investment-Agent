@@ -158,7 +158,10 @@ function App() {
       />
 
       <main>
-        <Header title={latestResponse?.title ?? activeChat.title} />
+        <Header
+          title={latestResponse?.title ?? activeChat.title}
+          onNewAnalysis={createNewAnalysis}
+        />
 
         <section className="messages" aria-label="Conversation" aria-live="polite">
           {activeChat.turns.length === 0 && (

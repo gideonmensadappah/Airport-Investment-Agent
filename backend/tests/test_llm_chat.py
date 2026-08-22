@@ -4,7 +4,7 @@ import unittest
 from app.services.airport_data import AeroDataBoxClient, AirportRepository
 from app.services.airport_resolver import AirportResolver
 from app.services.analysis import AnalysisService
-from app.services.chat import ChatService
+from app.services.chat import ChatService, _model_tool_output
 from app.services.demand import DemandService
 from app.services.intent_router import IntentRouter
 from app.services.long_haul import LongHaulService
@@ -258,6 +258,74 @@ class LLMChatTests(unittest.TestCase):
             response.answer,
             "SJU has 2,287 connecting passengers and connecting share 100.0%.",
         )
+
+    def test_unknown_future_internal_name_is_humanized_in_model_answer(self) -> None:
+        llm = FakeResponsesClient(
+            [
+                ModelResponse(
+                    id="resp-tool",
+                    text="",
+                    function_calls=(
+                        FunctionCall(
+                            call_id="call-demand",
+                            name="analyze_unmet_demand",
+                            arguments='{"airport":"LAX","top_n":5}',
+                        ),
+                    ),
+                ),
+                ModelResponse(
+                    id="resp-final",
+                    text="The new_internal_metric_value supports this result.",
+                    function_calls=(),
+                ),
+            ]
+        )
+        service = ChatService(
+            self.analysis,
+            self.demand,
+            self.long_haul,
+            self.router,
+            llm=llm,
+        )
+
+        response = service.answer("Show unmet demand from LAX.")
+
+        self.assertEqual(
+            response.answer,
+            "The new internal metric value supports this result.",
+        )
+
+    def test_every_tool_payload_has_no_snake_case_keys_or_text(self) -> None:
+        results = [
+            self.analysis.compare_congestion(["LAX", "SFO"]),
+            self.demand.analyze_unmet_demand("LAX"),
+            self.long_haul.analyze_long_haul_share("ANC"),
+            self.analysis.rank_expansion_candidates("New England"),
+        ]
+
+        for result in results:
+            with self.subTest(tool=result.tool):
+                serialized = json.dumps(_model_tool_output(result))
+                self.assertNotRegex(
+                    serialized,
+                    r"\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\b",
+                )
+
+                visible_text = " ".join(
+                    [
+                        result.title,
+                        result.summary,
+                        result.methodology,
+                        *result.assumptions,
+                        *result.limitations,
+                        *(source.name for source in result.sources),
+                        *(source.period for source in result.sources),
+                    ]
+                )
+                self.assertNotRegex(
+                    visible_text,
+                    r"\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\b",
+                )
 
     def test_overlong_model_explanation_falls_back_to_deterministic_summary(self) -> None:
         llm = FakeResponsesClient(

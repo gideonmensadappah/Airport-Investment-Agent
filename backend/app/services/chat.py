@@ -40,6 +40,11 @@ from app.services.openai_responses import (
 logger = logging.getLogger(__name__)
 
 
+_SNAKE_CASE_TOKEN = re.compile(
+    r"\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\b"
+)
+
+
 class UnsupportedQuestionError(ValueError):
     pass
 
@@ -204,7 +209,7 @@ class ChatService:
         return ChatResponse(
             **result.model_dump(),
             conversation_id=conversation_id,
-            answer=answer,
+            answer=_humanize_internal_names(answer),
         )
 
     def _get_state(self, conversation_id: str) -> ConversationState | None:
@@ -286,14 +291,40 @@ def _model_tool_output(result: AnalysisResult) -> dict:
             }
             for item in result.results
         ]
-    return output
+    return _humanize_model_payload(output)
+
+
+def _humanize_model_payload(value):
+    """Keep implementation field names out of every model-facing payload."""
+    if isinstance(value, dict):
+        return {
+            _humanize_internal_names(str(key)): _humanize_model_payload(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_humanize_model_payload(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_humanize_model_payload(item) for item in value)
+    if isinstance(value, str):
+        return _humanize_internal_names(value)
+    return value
+
+
+def _humanize_internal_names(text: str) -> str:
+    """Turn any current or future snake_case token into readable prose."""
+    normalized = text.replace("\\_", "_")
+    return _SNAKE_CASE_TOKEN.sub(
+        lambda match: match.group(0).replace("_", " "),
+        normalized,
+    )
 
 
 def _concise_answer(text: str, fallback: str) -> str:
     """Keep model prose compact; fall back to the deterministic summary."""
+    safe_fallback = _humanize_internal_names(fallback)
     compact = " ".join(text.replace("\\_", "_").split())
     if not compact:
-        return fallback
+        return safe_fallback
     labels = {
         "connecting_passengers": "connecting passengers",
         "connecting_share": "connecting share",
@@ -309,6 +340,7 @@ def _concise_answer(text: str, fallback: str) -> str:
             compact,
             flags=re.IGNORECASE,
         )
+    compact = _humanize_internal_names(compact)
     compact = re.sub(
         r"\bconnecting share\s+(0(?:\.\d+)?|1(?:\.0+)?)\b",
         lambda match: f"connecting share {float(match.group(1)) * 100:.1f}%",
@@ -318,5 +350,5 @@ def _concise_answer(text: str, fallback: str) -> str:
     sentences = re.split(r"(?<=[.!?])\s+", compact)
     candidate = " ".join(sentences[:2])
     if len(candidate) > 420 or len(candidate.split()) > 70:
-        return fallback
+        return safe_fallback
     return candidate

@@ -39,6 +39,7 @@ main { min-width: 0; background: #f8faf9; }
 .topbar h1 { margin: 0; font: 700 1.05rem "Manrope", sans-serif; }
 .topbar p { margin: 4px 0 0; color: #74817d; font-size: .74rem; }
 .mobile-brand { display: none; }
+.mobile-new-analysis { display: none; }
 .top-actions { display: flex; align-items: center; gap: 9px; }
 .top-actions > span { padding: 6px 9px; color: #527167; background: #edf4f1; border-radius: 999px; font-size: .67rem; font-weight: 700; }
 .top-actions button { width: 34px; height: 34px; color: #687872; background: #fff; border: 1px solid #dce5e1; border-radius: 9px; }
@@ -149,6 +150,8 @@ main { min-width: 0; background: #f8faf9; }
   .sidebar { display: none; }
   .topbar { min-height: 68px; padding: 12px 18px; }
   .mobile-brand { display: block; color: #3c705f; font-size: .62rem; font-weight: 700; text-transform: uppercase; }
+  .mobile-new-analysis { display: inline-flex; align-items: center; gap: 4px; flex: none; min-height: 38px; padding: 8px 11px; color: #17372f; background: #b9f16b; border: 0; border-radius: 10px; font-size: .75rem; font-weight: 700; }
+  .mobile-new-analysis span { font-size: 1rem; line-height: 1; }
   .topbar p, .top-actions > span { display: none; }
   .messages { width: calc(100% - 28px); padding-top: 28px; }
   .message { grid-template-columns: 32px minmax(0, 1fr); gap: 10px; }
