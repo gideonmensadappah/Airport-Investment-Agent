@@ -7,6 +7,12 @@ analysis tool, deterministic services calculate the result, and the interface
 shows the source, period, assumptions, limitations, and confidence alongside
 the answer.
 
+## Demo
+
+- [Live application](https://airport-investment-agent-web.onrender.com/)
+- [27-second product walkthrough](https://youtu.be/_YkvdFmvZgU)
+- [Design and architecture document](docs/HLD.md)
+
 ## Prerequisites
 
 - Python 3.12

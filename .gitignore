@@ -16,6 +16,7 @@ data/*.db
 data/*.db.tmp
 tmp/
 .pnpm-store/
+artifacts/demo-video/
 
 # Local exploratory scripts
 backend/scripts/test_dest.py
