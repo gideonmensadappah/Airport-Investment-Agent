@@ -34,7 +34,7 @@ function initialWorkspace(): ChatWorkspace {
 
 function App() {
   const [workspace, setWorkspace] = useState<ChatWorkspace>(initialWorkspace);
-  const [draft, setDraft] = useState(examplePrompt);
+  const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const latestAnswerRef = useRef<HTMLElement>(null);
 
@@ -108,9 +108,9 @@ function App() {
     const chat = createLocalChat();
     setWorkspace(previous => ({
       activeChatId: chat.id,
-      chats: [chat, ...previous.chats],
+      chats: [chat, ...previous.chats.filter(item => item.turns.length > 0)],
     }));
-    setDraft(examplePrompt);
+    setDraft("");
   }
 
   function selectChat(chatId: string) {
@@ -152,7 +152,7 @@ function App() {
     <div className="workspace">
       <Sidebar
         activeChatId={activeChat.id}
-        chats={workspace.chats}
+        chats={workspace.chats.filter(chat => chat.turns.length > 0)}
         onNewAnalysis={createNewAnalysis}
         onSelectChat={selectChat}
       />

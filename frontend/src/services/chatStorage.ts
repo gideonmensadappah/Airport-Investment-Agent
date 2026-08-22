@@ -35,9 +35,9 @@ export function loadChatWorkspace(): StoredChatWorkspace {
     const value = JSON.parse(stored) as unknown;
     if (!isStoredChats(value)) return { activeChatId: null, chats: [] };
 
-    return {
-      activeChatId: typeof value.activeChatId === "string" ? value.activeChatId : null,
-      chats: value.chats.map(chat => ({
+    const chats = value.chats
+      .filter(chat => chat.turns.length > 0)
+      .map(chat => ({
         ...chat,
         turns: chat.turns.map(turn => (
           turn.status === "pending"
@@ -48,8 +48,13 @@ export function loadChatWorkspace(): StoredChatWorkspace {
               }
             : turn
         )),
-      })),
-    };
+      }));
+    const activeChatId = typeof value.activeChatId === "string"
+      && chats.some(chat => chat.id === value.activeChatId)
+      ? value.activeChatId
+      : null;
+
+    return { activeChatId, chats };
   } catch {
     return { activeChatId: null, chats: [] };
   }
@@ -57,7 +62,12 @@ export function loadChatWorkspace(): StoredChatWorkspace {
 
 export function saveChatWorkspace(activeChatId: string, chats: LocalChat[]): void {
   try {
-    const value: StoredChats = { version: storageVersion, activeChatId, chats };
+    const startedChats = chats.filter(chat => chat.turns.length > 0);
+    const value: StoredChats = {
+      version: storageVersion,
+      chats: startedChats,
+      ...(startedChats.some(chat => chat.id === activeChatId) ? { activeChatId } : {}),
+    };
     localStorage.setItem(storageKey, JSON.stringify(value));
   } catch {
     // The in-memory workspace remains usable when browser storage is unavailable.
