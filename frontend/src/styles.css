@@ -49,11 +49,6 @@ main { min-width: 0; background: #f8faf9; }
 .empty-state h2 { margin: 0; font: 700 1.35rem "Manrope", sans-serif; }
 .empty-state p { margin: 10px auto 24px; color: #73817c; line-height: 1.6; }
 .empty-state button { padding: 11px 15px; color: #fff; background: #1e5748; border: 0; border-radius: 10px; font-weight: 700; }
-.loading-state, .error-state { width: min(720px, 100%); padding: 13px 16px; margin: 28px auto 0; border-radius: 10px; font-size: .8rem; }
-.loading-state { color: #527167; background: #edf4f1; }
-.error-state { color: #8b2e2e; background: #fff0f0; border: 1px solid #f3cccc; }
-.turn-error { padding: 14px 16px; color: #8b2e2e; background: #fff0f0; border: 1px solid #f3cccc; border-radius: 11px; }
-.turn-error p:last-child { margin: 0; font-size: .82rem; line-height: 1.5; }
 .message { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 14px; }
 .message + .message { margin-top: 34px; }
 .agent-message { grid-template-columns: minmax(0, 1fr) 38px; }
@@ -70,6 +65,16 @@ main { min-width: 0; background: #f8faf9; }
 .confidence { display: inline-flex; align-items: center; align-self: start; gap: 6px; padding: 6px 9px; color: #566a62; background: #edf3f0; border-radius: 999px; font-size: .65rem; font-weight: 600; }
 .confidence i { width: 6px; height: 6px; background: #e3a72f; border-radius: 50%; }
 .summary { max-width: 720px; margin: 16px 0 22px auto; color: #35433e; font-size: .92rem; line-height: 1.65; text-align: right; }
+.analysis-loading { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-height: 54px; color: #527167; text-align: right; }
+.analysis-loading p { margin: 0; font-size: .78rem; line-height: 1.45; }
+.analysis-loading .author { margin-bottom: 3px; }
+.loading-spinner { width: 20px; height: 20px; flex: none; border: 3px solid #d7e5df; border-top-color: #1e5748; border-radius: 50%; animation: loading-spin .8s linear infinite; }
+
+@keyframes loading-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner { animation: none; }
+}
 
 .results-card { overflow: hidden; background: #fff; border: 1px solid #dbe4e0; border-radius: 14px; box-shadow: 0 10px 30px rgb(24 55 47 / 5%); }
 .results-card > header { display: flex; align-items: end; justify-content: space-between; padding: 19px 22px 15px; border-bottom: 1px solid #edf1ef; }

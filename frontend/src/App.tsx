@@ -120,7 +120,7 @@ function App() {
 
   useEffect(() => {
     const answer = latestAnswerRef.current;
-    if (!answer || successfulTurns.length === 0) return;
+    if (!answer || (!loading && successfulTurns.length === 0)) return;
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const headerOffset = 94;
@@ -146,7 +146,7 @@ function App() {
 
     animationFrame = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(animationFrame);
-  }, [activeChat.id, successfulTurns.length]);
+  }, [activeChat.id, loading, successfulTurns.length]);
 
   return (
     <div className="workspace">
@@ -214,21 +214,33 @@ function App() {
               {turn.status === "error" && (
                 <article className="message agent-message">
                   <span className="message-avatar agent-avatar">A</span>
-                  <div className="turn-error" role="alert">
+                  <div className="answer" role="alert">
                     <p className="author">AirIntel Agent</p>
-                    <p>{turn.error}</p>
+                    <p className="summary">{turn.error}</p>
                   </div>
                 </article>
               )}
             </Fragment>
           ))}
-        </section>
 
-        {loading && (
-          <p className="loading-state">
-            Analyzing… The free API may take up to a minute to wake up.
-          </p>
-        )}
+          {loading && (
+            <article
+              className="message agent-message"
+              ref={latestAnswerRef}
+              role="status"
+              aria-label="Analysis in progress"
+            >
+              <span className="message-avatar agent-avatar">A</span>
+              <div className="answer analysis-loading">
+                <span className="loading-spinner" aria-hidden="true" />
+                <div>
+                  <p className="author">AirIntel Agent</p>
+                  <p>Analyzing… The free API may take up to a minute to wake up.</p>
+                </div>
+              </div>
+            </article>
+          )}
+        </section>
 
         <section className="composer-area">
           <div className="suggestions">

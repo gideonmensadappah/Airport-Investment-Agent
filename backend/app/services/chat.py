@@ -233,7 +233,12 @@ class ChatService:
 def _model_tool_output(result: AnalysisResult) -> dict:
     """Expose only fields relevant to the selected analysis tool."""
     output: dict = {
-        "tool": result.tool,
+        "analysis type": {
+            "compare_congestion": "congestion comparison",
+            "analyze_unmet_demand": "unmet-demand screening",
+            "analyze_long_haul_share": "long-haul share",
+            "rank_expansion_candidates": "expansion candidate ranking",
+        }[result.tool],
         "summary": result.summary,
         "confidence": result.confidence,
     }
@@ -243,8 +248,8 @@ def _model_tool_output(result: AnalysisResult) -> dict:
             {
                 "destination": item.destination,
                 "score": item.score,
-                "connecting_passengers": item.connecting_passengers,
-                "connecting_share": item.connecting_share,
+                "connecting passengers": item.connecting_passengers,
+                "connecting share (%)": round(item.connecting_share * 100, 1),
             }
             for item in result.results
         ]
@@ -252,9 +257,9 @@ def _model_tool_output(result: AnalysisResult) -> dict:
         output.update(
             {
                 "origin": result.origin,
-                "long_haul_share_pct": result.long_haul_share_pct,
-                "threshold_miles": result.threshold_miles,
-                "coverage_pct": result.coverage_pct,
+                "long-haul share (%)": result.long_haul_share_pct,
+                "long-haul threshold (miles)": result.threshold_miles,
+                "known-distance coverage (%)": result.coverage_pct,
             }
         )
     elif result.tool == "compare_congestion":
@@ -262,10 +267,10 @@ def _model_tool_output(result: AnalysisResult) -> dict:
             {
                 "code": item.code,
                 "score": item.score,
-                "average_departure_delay_minutes": (
+                "average departure delay (minutes)": (
                     item.metrics.average_departure_delay_minutes
                 ),
-                "cancellation_rate_pct": item.metrics.cancellation_rate_pct,
+                "cancellation rate (%)": item.metrics.cancellation_rate_pct,
             }
             for item in result.results
         ]
@@ -274,7 +279,10 @@ def _model_tool_output(result: AnalysisResult) -> dict:
             {
                 "code": item.code,
                 "score": item.score,
-                "component_scores": item.component_scores.model_dump(),
+                "component scores": {
+                    name.replace("_", " "): value
+                    for name, value in item.component_scores.model_dump().items()
+                },
             }
             for item in result.results
         ]
@@ -283,9 +291,30 @@ def _model_tool_output(result: AnalysisResult) -> dict:
 
 def _concise_answer(text: str, fallback: str) -> str:
     """Keep model prose compact; fall back to the deterministic summary."""
-    compact = " ".join(text.split())
+    compact = " ".join(text.replace("\\_", "_").split())
     if not compact:
         return fallback
+    labels = {
+        "connecting_passengers": "connecting passengers",
+        "connecting_share": "connecting share",
+        "average_departure_delay_minutes": "average departure delay",
+        "cancellation_rate_pct": "cancellation rate",
+        "long_haul_share_pct": "long-haul share",
+        "coverage_pct": "known-distance coverage",
+    }
+    for internal_name, human_label in labels.items():
+        compact = re.sub(
+            rf"\b{re.escape(internal_name)}\b",
+            human_label,
+            compact,
+            flags=re.IGNORECASE,
+        )
+    compact = re.sub(
+        r"\bconnecting share\s+(0(?:\.\d+)?|1(?:\.0+)?)\b",
+        lambda match: f"connecting share {float(match.group(1)) * 100:.1f}%",
+        compact,
+        flags=re.IGNORECASE,
+    )
     sentences = re.split(r"(?<=[.!?])\s+", compact)
     candidate = " ".join(sentences[:2])
     if len(candidate) > 420 or len(candidate.split()) > 70:
