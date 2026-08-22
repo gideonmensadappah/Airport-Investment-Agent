@@ -47,6 +47,34 @@ class SourceInfo(BaseModel):
     period: str
     scope: str
 
+
+class LongHaulRoute(BaseModel):
+    destination: str
+    name: str
+    distance_miles: float = Field(ge=0)
+    average_daily_flights: float = Field(ge=0)
+
+
+class LongHaulAnalysisResponse(BaseModel):
+    tool: Literal["analyze_long_haul_share"] = "analyze_long_haul_share"
+    title: str
+    summary: str
+    origin: str
+    airport_name: str
+    threshold_miles: float = Field(gt=0)
+    long_haul_share_pct: float = Field(ge=0, le=100)
+    long_haul_average_daily_flights: float = Field(ge=0)
+    known_distance_average_daily_flights: float = Field(ge=0)
+    total_average_daily_flights: float = Field(ge=0)
+    coverage_pct: float = Field(ge=0, le=100)
+    observation_period: str
+    results: list[LongHaulRoute]
+    confidence: Literal["low", "medium", "high"]
+    assumptions: list[str]
+    limitations: list[str]
+    sources: list[SourceInfo]
+    methodology: str
+
 class DemandAnalysisResponse(BaseModel):
     tool: Literal["analyze_unmet_demand"] = "analyze_unmet_demand"
     title: str
@@ -90,15 +118,24 @@ class ChatResponse(BaseModel):
         "compare_congestion",
         "rank_expansion_candidates",
         "analyze_unmet_demand",
+        "analyze_long_haul_share",
     ]
     title: str
     summary: str
-    results: list[AirportResult] | list[DemandOpportunity]
+    results: list[AirportResult] | list[DemandOpportunity] | list[LongHaulRoute]
     confidence: Literal["low", "medium", "high"]
     assumptions: list[str]
     limitations: list[str]
     sources: list[SourceInfo]
     methodology: str
     origin: str | None = None
+    airport_name: str | None = None
+    threshold_miles: float | None = None
+    long_haul_share_pct: float | None = None
+    long_haul_average_daily_flights: float | None = None
+    known_distance_average_daily_flights: float | None = None
+    total_average_daily_flights: float | None = None
+    coverage_pct: float | None = None
+    observation_period: str | None = None
     conversation_id: str
     answer: str

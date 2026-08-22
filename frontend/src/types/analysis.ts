@@ -32,6 +32,13 @@ export type DemandOpportunity = {
   score: number;
 };
 
+export type LongHaulRoute = {
+  destination: string;
+  name: string;
+  distance_miles: number;
+  average_daily_flights: number;
+};
+
 export type SourceInfo = {
   name: string;
   period: string;
@@ -68,15 +75,31 @@ export type DemandChatResponse = SharedChatResponse & {
   origin: string;
 };
 
+export type LongHaulChatResponse = SharedChatResponse & {
+  tool: "analyze_long_haul_share";
+  results: LongHaulRoute[];
+  origin: string;
+  airport_name: string;
+  threshold_miles: number;
+  long_haul_share_pct: number;
+  long_haul_average_daily_flights: number;
+  known_distance_average_daily_flights: number;
+  total_average_daily_flights: number;
+  coverage_pct: number;
+  observation_period: string;
+};
+
 export type ChatResponse =
   | CongestionChatResponse
   | RankingChatResponse
-  | DemandChatResponse;
+  | DemandChatResponse
+  | LongHaulChatResponse;
 
 const supportedTools = new Set<ChatResponse["tool"]>([
   "compare_congestion",
   "rank_expansion_candidates",
   "analyze_unmet_demand",
+  "analyze_long_haul_share",
 ]);
 
 export function isChatResponse(value: unknown): value is ChatResponse {

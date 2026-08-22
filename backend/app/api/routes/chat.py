@@ -8,6 +8,7 @@ from app.services.analysis import AnalysisService
 from app.services.chat import ChatService, UnsupportedQuestionError
 from app.services.demand import DemandService
 from app.services.intent_router import IntentRouter
+from app.services.long_haul import LongHaulService
 from app.services.openai_responses import OpenAIResponsesClient
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -26,8 +27,13 @@ analysis_service = AnalysisService(
     use_live_data=settings.use_aerodatabox,
 )
 demand_service = DemandService(database_file=settings.airport_database_file)
+long_haul_service = LongHaulService(
+    aerodatabox=aerodatabox,
+    threshold_miles=settings.long_haul_threshold_miles,
+    use_live_data=settings.use_aerodatabox,
+)
 airport_resolver = AirportResolver(
-    supported_codes=repository.supported_codes,
+    supported_codes=repository.supported_codes | {"ANC"},
     supported_regions=repository.supported_regions,
 )
 intent_router = IntentRouter(airport_resolver)
@@ -44,6 +50,7 @@ openai_client = (
 chat_service = ChatService(
     analysis_service,
     demand_service,
+    long_haul_service,
     intent_router,
     llm=openai_client,
 )

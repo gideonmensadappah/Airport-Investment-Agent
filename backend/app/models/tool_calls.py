@@ -40,6 +40,15 @@ class RankExpansionCandidatesArguments(ToolArguments):
         return " ".join(region.split())
 
 
+class AnalyzeLongHaulArguments(ToolArguments):
+    airport: str
+
+    @field_validator("airport")
+    @classmethod
+    def validate_airport(cls, airport: str) -> str:
+        return _normalize_iata(airport)
+
+
 class CompareCongestionToolCall(BaseModel):
     model_config = ConfigDict(extra="forbid")
     tool: Literal["compare_congestion"] = "compare_congestion"
@@ -58,6 +67,12 @@ class RankExpansionCandidatesToolCall(BaseModel):
     arguments: RankExpansionCandidatesArguments
 
 
+class AnalyzeLongHaulToolCall(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tool: Literal["analyze_long_haul_share"] = "analyze_long_haul_share"
+    arguments: AnalyzeLongHaulArguments
+
+
 class ClarificationDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
     tool: Literal["clarification"] = "clarification"
@@ -68,6 +83,7 @@ RoutingDecision = (
     CompareCongestionToolCall
     | AnalyzeUnmetDemandToolCall
     | RankExpansionCandidatesToolCall
+    | AnalyzeLongHaulToolCall
     | ClarificationDecision
 )
 

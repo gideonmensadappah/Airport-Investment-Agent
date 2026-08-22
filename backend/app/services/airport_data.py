@@ -157,6 +157,16 @@ class AeroDataBoxClient:
 
         return enriched
 
+    def get_airport_metadata(self, code: str) -> dict:
+        """Return airport metadata when the live API is available."""
+        return self._safe_get(f"/airports/iata/{code.strip().upper()}")
+
+    def get_daily_routes(self, code: str) -> dict:
+        """Return AeroDataBox trailing-seven-day daily route statistics."""
+        return self._safe_get(
+            f"/airports/iata/{code.strip().upper()}/stats/routes/daily"
+        )
+
     def _safe_get(self, path: str) -> dict:
         try:
             return self._get(path)

@@ -12,6 +12,7 @@ class ChatApiTests(unittest.TestCase):
         # API contract tests must never depend on a developer's local key or
         # make paid external model calls.
         chat_service.llm = None
+        chat_service.long_haul.use_live_data = False
         cls.client = TestClient(app)
 
     def test_compares_lax_and_santa_ana_end_to_end(self) -> None:
@@ -122,6 +123,27 @@ class ChatApiTests(unittest.TestCase):
         scores = [result["score"] for result in payload["results"]]
         self.assertEqual(scores, sorted(scores, reverse=True))
         self.assertTrue(payload["methodology"])
+
+    def test_analyzes_anchorage_long_haul_share_end_to_end(self) -> None:
+        response = self.client.post(
+            "/api/v1/chat",
+            json={
+                "message": (
+                    "What is the percentage of long-haul flights out of "
+                    "Anchorage airport?"
+                )
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["tool"], "analyze_long_haul_share")
+        self.assertEqual(payload["origin"], "ANC")
+        self.assertEqual(payload["threshold_miles"], 3000.0)
+        self.assertEqual(payload["long_haul_share_pct"], 19.7)
+        self.assertEqual(payload["coverage_pct"], 99.9)
+        self.assertEqual(payload["results"][0]["destination"], "JFK")
+        self.assertIn("snapshot", payload["sources"][0]["name"].lower())
 
 
 if __name__ == "__main__":

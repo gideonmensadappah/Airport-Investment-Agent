@@ -1,4 +1,6 @@
 from app.models.tool_calls import (
+    AnalyzeLongHaulArguments,
+    AnalyzeLongHaulToolCall,
     AnalyzeUnmetDemandArguments,
     AnalyzeUnmetDemandToolCall,
     ClarificationDecision,
@@ -48,6 +50,15 @@ class IntentRouter:
         normalized = " ".join(message.casefold().split())
         airports = self.resolver.extract_airports(message)
 
+        if _contains_any(normalized, LONG_HAUL_SIGNALS):
+            if not airports:
+                return ClarificationDecision(
+                    message="Specify one origin airport, for example ANC.",
+                )
+            return AnalyzeLongHaulToolCall(
+                arguments=AnalyzeLongHaulArguments(airport=airports[0]),
+            )
+
         if _contains_any(normalized, RANKING_SIGNALS):
             region = self.resolver.extract_region(message)
             if region is None:
@@ -83,17 +94,23 @@ class IntentRouter:
             return ClarificationDecision(
                 message=(
                     "Specify the analysis you want: congestion comparison or "
-                    "potential nonstop opportunities."
+                    "potential nonstop opportunities, or long-haul share."
                 ),
             )
 
         return ClarificationDecision(
             message=(
                 "Ask for an airport congestion comparison or potential nonstop "
-                "opportunities, and include the relevant airport codes."
+                "opportunities, or a long-haul share, and include the relevant "
+                "airport codes."
             ),
         )
 
 
 def _contains_any(message: str, signals: tuple[str, ...]) -> bool:
     return any(signal in message for signal in signals)
+LONG_HAUL_SIGNALS = (
+    "long haul",
+    "long-haul",
+    "longhaul",
+)

@@ -14,6 +14,8 @@ context without calling a tool unless the user requests a new or changed
 analysis. If required locations or airports are ambiguous or missing, ask one
 short clarification question instead of guessing. Airport arguments must be
 three-letter IATA codes.
+Long-haul is defined by the analysis tool as at least 3,000 statute miles; do
+not ask the user to choose a threshold.
 """
 
 
@@ -54,6 +56,23 @@ TOOLS = [
                 "top_n": {"type": "integer", "minimum": 1, "maximum": 10},
             },
             "required": ["airport", "top_n"],
+            "additionalProperties": False,
+        },
+        "strict": True,
+    },
+    {
+        "type": "function",
+        "name": "analyze_long_haul_share",
+        "description": (
+            "Calculate the departure-frequency-weighted percentage of flights "
+            "from one airport that travel at least 3,000 statute miles."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "airport": {"type": "string", "pattern": "^[A-Z]{3}$"},
+            },
+            "required": ["airport"],
             "additionalProperties": False,
         },
         "strict": True,

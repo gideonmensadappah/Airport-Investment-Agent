@@ -1,5 +1,12 @@
 # Airport Investment Intelligence Agent
 
+[![CI](https://github.com/gideonmensadappah/Airport-Investment-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/gideonmensadappah/Airport-Investment-Agent/actions/workflows/ci.yml)
+
+A conversational airport-investment screening demo. An LLM selects a typed
+analysis tool, deterministic services calculate the result, and the interface
+shows the source, period, assumptions, limitations, and confidence alongside
+the answer.
+
 ## Prerequisites
 
 - Python 3.12
@@ -18,13 +25,19 @@ is included in the runtime image; the 5+ GB raw source file is never copied
 into the image. Live AeroDataBox enrichment is optional and falls back to the
 bundled metrics when no API key is configured.
 
+Long-haul analysis uses AeroDataBox daily route statistics, which summarize the
+trailing seven local days. It calculates great-circle distance for each
+destination and weights the result by average daily departure frequency. A
+versioned ANC snapshot keeps the assignment's Anchorage example reproducible
+when the optional API is unavailable.
+
 OpenAI's Responses API provides the conversational orchestration layer. The
 model selects one of the typed analysis tools and explains its structured
 output; all metrics and scores remain deterministic. When no OpenAI key is
 configured, the API falls back to the original rule-based intent router.
 
 
-## Run the Stage 1 flow
+## Run the complete demo locally
 
 The frontend and backend are separate development servers. Keep both terminals open.
 
@@ -73,12 +86,24 @@ npm run dev
 
 Open `http://127.0.0.1:5173`. Vite proxies `/api` requests to the API on port 8000.
 
-Stage 1 supports examples such as:
+Recommended reviewer prompts:
 
 ```text
 Compare LAX and Santa Ana airport congestion.
-Compare SFO and LAX congestion.
+Rank New England airports for expansion opportunity.
+Show unmet demand from LAX.
+What is the percentage of long-haul flights out of Anchorage airport?
 ```
+
+| Workflow | Deterministic result | Primary data |
+| --- | --- | --- |
+| Congestion comparison | Fixed normalization of departure delay and cancellation rate | AeroDataBox when configured; labeled bundled metrics otherwise |
+| Regional expansion ranking | Weighted demand, congestion, capacity-pressure, and long-haul components | Bundled reproducible MVP inputs with optional live operational enrichment |
+| Unmet-demand screening | Connecting-passenger volume and share proxy | Public US DOT DB1C Market snapshot |
+| Long-haul share | Average daily departures on routes of at least 3,000 great-circle miles divided by departures with known destination distance | AeroDataBox trailing-seven-day route statistics; versioned ANC fallback |
+
+The bundled fallbacks are deliberate demo artifacts, not silently presented as
+live data. Every response labels its source and observation period.
 
 ## Tests
 
@@ -91,6 +116,9 @@ python -m unittest discover -s tests -v
 cd frontend
 npm run build
 ```
+
+GitHub Actions repeats both checks and builds the production Docker image on
+every push and pull request. Render deploys only after those checks pass.
 
 ## Build the local aviation database
 
@@ -132,11 +160,14 @@ Verify `http://127.0.0.1:8000/api/v1/health`.
 3. Render reads `render.yaml` and creates:
    - `airport-investment-agent-web`, a free static site.
    - `airport-investment-agent-api`, a free Docker web service.
-4. Optionally add `AERODATABOX_API_KEY` to the API service as a secret
-   environment variable. Without it, the bundled fallback data remains usable.
-5. Set the prompted `OPENAI_API_KEY` secret on the API service to enable LLM
-   tool selection and conversational explanations. Without it, deterministic
-   routing remains available.
+4. Add `OPENAI_API_KEY` to enable LLM tool selection and conversational
+   explanations. Without it, deterministic routing remains available.
+5. Optionally add `AERODATABOX_API_KEY` for live airport and route data.
+   Without it, the labeled bundled fallbacks remain usable.
+
+Both keys are declared with `sync: false` and are never stored in Git. Render
+prompts for them during initial Blueprint creation. If the Blueprint already
+exists, add newly introduced secrets manually in the API service dashboard.
 
 The Blueprint passes each service's generated public URL to the other service:
 the frontend receives `VITE_API_BASE_URL`, and the API receives the exact CORS
@@ -145,3 +176,14 @@ origin. No deployment URL is hard-coded.
 Render's free API service sleeps after periods of inactivity. The static UI
 remains available and explains that the first analysis can take up to a minute
 while the API wakes.
+
+## Submission readiness checklist
+
+- `python -m unittest discover -s tests -v` passes from `backend/`.
+- `npm run build` passes from `frontend/`.
+- The Docker image builds from the repository root.
+- `/api/v1/health` returns `{"status":"ok","data":"ready"}`.
+- `OPENAI_API_KEY` and, optionally, `AERODATABOX_API_KEY` are configured only
+  as server-side secrets.
+- The four reviewer prompts above return structured results with visible
+  methodology, source period, assumptions, and limitations.

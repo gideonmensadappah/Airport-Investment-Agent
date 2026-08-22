@@ -3,6 +3,7 @@ import unittest
 from pydantic import ValidationError
 
 from app.models.tool_calls import (
+    AnalyzeLongHaulToolCall,
     AnalyzeUnmetDemandArguments,
     AnalyzeUnmetDemandToolCall,
     ClarificationDecision,
@@ -18,7 +19,9 @@ class IntentRouterTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         resolver = AirportResolver(
-            supported_codes={"LAX", "SFO", "SNA", "BOS", "BDL", "PVD", "MHT", "PWM"},
+            supported_codes={
+                "LAX", "SFO", "SNA", "BOS", "BDL", "PVD", "MHT", "PWM", "ANC"
+            },
             supported_regions={"West", "New England"},
         )
         cls.router = IntentRouter(resolver)
@@ -40,6 +43,14 @@ class IntentRouterTests(unittest.TestCase):
 
         self.assertIsInstance(decision, RankExpansionCandidatesToolCall)
         self.assertEqual(decision.arguments.region, "New England")
+
+    def test_routes_anchorage_long_haul_question(self) -> None:
+        decision = self.router.route(
+            "What is the percentage of long haul flights out of Anchorage airport?"
+        )
+
+        self.assertIsInstance(decision, AnalyzeLongHaulToolCall)
+        self.assertEqual(decision.arguments.airport, "ANC")
 
     def test_requests_origin_for_demand_analysis(self) -> None:
         decision = self.router.route("Show potential nonstop opportunities.")

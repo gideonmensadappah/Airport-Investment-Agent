@@ -166,11 +166,12 @@ function App() {
               <span className="agent-avatar message-avatar">A</span>
               <h2>Hi, let's get started</h2>
               <p>
-                Ask about airport congestion or potential nonstop opportunities.
+                Ask about airport congestion, route opportunities, or long-haul share.
 
                 Examples:
                 • Compare LAX and SFO congestion
                 • Show unmet demand from LAX
+                • What percentage of flights from ANC are long-haul?
               </p>
               <button type="button" onClick={() => void submitQuestion(examplePrompt)}>
                 Run the LAX vs SNA example
@@ -235,6 +236,7 @@ function App() {
             <button type="button" onClick={() => setDraft("Compare SFO and LAX congestion.")}>SFO vs LAX</button>
             <button type="button" onClick={() => setDraft("Show unmet demand from LAX.")}>LAX unmet demand</button>
             <button type="button" onClick={() => setDraft("Rank New England airports.")}>New England ranking</button>
+            <button type="button" onClick={() => setDraft("What percentage of flights out of Anchorage airport are long-haul?")}>ANC long-haul</button>
           </div>
           <form className="composer" onSubmit={handleSubmit}>
             <label className="sr-only" htmlFor="message">Ask for a question</label>
@@ -243,7 +245,7 @@ function App() {
               rows={1}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Ask about airport congestion or route opportunities…"
+              placeholder="Ask about congestion, route opportunities, or long-haul share…"
             />
             <button type="submit" aria-label="Send message" disabled={loading}>↑</button>
           </form>

@@ -55,7 +55,7 @@ Browser
   -> Render Free Web Service (Dockerized FastAPI)
        -> immutable SQLite demand snapshot
        -> bundled airport metrics
-       -> optional AeroDataBox enrichment
+       -> optional AeroDataBox enrichment and daily route statistics
 ```
 
 The separation keeps the interface available while Render's free API instance
@@ -203,7 +203,18 @@ Confidence is reported separately so users can distinguish score magnitude from 
 
 # 6. Supporting KPI Definitions
 
-Long-haul percentage = long-haul departures / departures with a known destination x 100. The response states the distance threshold, observation period, sample size, and coverage.
+Long-haul percentage = average daily departures on routes of at least 3,000
+great-circle statute miles / average daily departures with a known destination
+distance × 100. AeroDataBox daily route statistics provide a trailing-seven-day
+average. The result is therefore weighted by scheduled departure frequency,
+not by the number of destinations. The response states the threshold,
+observation period, denominator, and coordinate coverage.
+
+For the assignment's ANC example, the service uses live AeroDataBox route
+statistics when configured. A versioned snapshot retrieved on 2026-08-22 is
+the explicit fallback, so the demo remains reproducible without hiding that
+the data is not live. Great-circle distance is a screening proxy and the route
+statistics may include cargo or other scheduled operations.
 
 Unmet demand is not directly observable from public flight activity alone. The MVP therefore reports an Unmet Demand Signal based on DB1C and on 70% connecting-passenger volume
 + 30% connecting-passenger share. It is explicitly described as a screening proxy rather than the number of passengers who were unable to travel.
@@ -256,4 +267,4 @@ Making confidence account for component completeness is a known MVP limitation.
 
 # 11. MVP Deliverable
 
-The implementation will provide a chat interface, an agent with typed tools, public aviation-data integration, deterministic comparison/ranking logic, conversational follow-ups, and visible assumptions and uncertainty. Voice, persistent enterprise storage, advanced observability, and full investment valuation remain outside the take-home scope.
+The implementation provides a chat interface, an agent with typed tools, public aviation-data integration, deterministic comparison/ranking logic, conversational follow-ups, and visible assumptions and uncertainty. Voice, persistent enterprise storage, advanced observability, and full investment valuation remain outside the take-home scope.

@@ -7,6 +7,7 @@ from app.services.analysis import AnalysisService
 from app.services.chat import ChatService
 from app.services.demand import DemandService
 from app.services.intent_router import IntentRouter
+from app.services.long_haul import LongHaulService
 from app.services.openai_responses import FunctionCall, ModelResponse
 
 
@@ -33,21 +34,23 @@ class FakeResponsesClient:
 class LLMChatTests(unittest.TestCase):
     def setUp(self) -> None:
         repository = AirportRepository()
+        aerodatabox = AeroDataBoxClient(
+            api_key=None,
+            base_url="https://example.invalid",
+            rapidapi_host="example.invalid",
+        )
         analysis = AnalysisService(
             repository=repository,
-            aerodatabox=AeroDataBoxClient(
-                api_key=None,
-                base_url="https://example.invalid",
-                rapidapi_host="example.invalid",
-            ),
+            aerodatabox=aerodatabox,
             use_live_data=False,
         )
         resolver = AirportResolver(
-            supported_codes=repository.supported_codes,
+            supported_codes=repository.supported_codes | {"ANC"},
             supported_regions=repository.supported_regions,
         )
         self.analysis = analysis
         self.demand = DemandService()
+        self.long_haul = LongHaulService(aerodatabox, use_live_data=False)
         self.router = IntentRouter(resolver)
 
     def test_model_selects_tool_and_explains_deterministic_result(self) -> None:
@@ -71,7 +74,13 @@ class LLMChatTests(unittest.TestCase):
                 ),
             ]
         )
-        service = ChatService(self.analysis, self.demand, self.router, llm=llm)
+        service = ChatService(
+            self.analysis,
+            self.demand,
+            self.long_haul,
+            self.router,
+            llm=llm,
+        )
 
         response = service.answer("Which is more congested, LAX or SFO?", "conversation-1")
 
@@ -108,7 +117,13 @@ class LLMChatTests(unittest.TestCase):
                 ),
             ]
         )
-        service = ChatService(self.analysis, self.demand, self.router, llm=llm)
+        service = ChatService(
+            self.analysis,
+            self.demand,
+            self.long_haul,
+            self.router,
+            llm=llm,
+        )
         first = service.answer("Compare LAX and SFO.", "conversation-1")
 
         follow_up = service.answer("Why?", "conversation-1")
@@ -117,6 +132,44 @@ class LLMChatTests(unittest.TestCase):
         self.assertEqual(follow_up.tool, first.tool)
         self.assertEqual(follow_up.results, first.results)
         self.assertIn("deterministic", follow_up.answer)
+
+    def test_model_can_select_long_haul_tool(self) -> None:
+        llm = FakeResponsesClient(
+            [
+                ModelResponse(
+                    id="resp-tool",
+                    text="",
+                    function_calls=(
+                        FunctionCall(
+                            call_id="call-long-haul",
+                            name="analyze_long_haul_share",
+                            arguments='{"airport":"ANC"}',
+                        ),
+                    ),
+                ),
+                ModelResponse(
+                    id="resp-final",
+                    text="ANC's long-haul share is 19.7%.",
+                    function_calls=(),
+                ),
+            ]
+        )
+        service = ChatService(
+            self.analysis,
+            self.demand,
+            self.long_haul,
+            self.router,
+            llm=llm,
+        )
+
+        response = service.answer(
+            "What percentage of flights out of Anchorage are long-haul?"
+        )
+
+        self.assertEqual(response.tool, "analyze_long_haul_share")
+        self.assertEqual(response.origin, "ANC")
+        self.assertEqual(response.long_haul_share_pct, 19.7)
+        self.assertIn("19.7%", response.answer)
 
 
 if __name__ == "__main__":

@@ -76,6 +76,9 @@ main { min-width: 0; background: #f8faf9; }
 .results-card header small { color: #558271; font-size: .65rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
 .results-card h2 { margin: 3px 0 0; font: 700 1rem "Manrope", sans-serif; }
 .results-card header > span { color: #89958f; font-size: .66rem; }
+.results-card header .headline-metric { color: #1c5143; font: 700 1.5rem "Manrope", sans-serif; }
+.long-haul-overview { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)) minmax(190px, 1.5fr); gap: 18px; padding: 17px 22px; background: #f8fbfa; border-bottom: 1px solid #edf1ef; }
+.long-haul-row { grid-template-columns: minmax(260px, 1.5fr) minmax(150px, .7fr) minmax(150px, .7fr); }
 .airport-row { display: grid; grid-template-columns: minmax(235px, 1.4fr) minmax(125px, .8fr) .55fr .55fr; align-items: center; gap: 20px; padding: 18px 22px; }
 .ranking-row { grid-template-columns: minmax(175px, 1.2fr) minmax(105px, .7fr) repeat(4, minmax(64px, .5fr)); gap: 14px; }
 .airport-row + .airport-row { border-top: 1px solid #edf1ef; }
@@ -131,6 +134,9 @@ main { min-width: 0; background: #f8faf9; }
   .composer-area { left: 78px; }
   .airport-row { grid-template-columns: minmax(190px, 1.2fr) 1fr; }
   .datum { display: none; }
+  .long-haul-overview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+  .long-haul-overview .datum, .long-haul-row .datum { display: block; }
+  .long-haul-row { grid-template-columns: minmax(190px, 1.2fr) 1fr 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -146,6 +152,9 @@ main { min-width: 0; background: #f8faf9; }
   .answer-head { display: block; }
   .confidence { margin-top: 9px; }
   .airport-row { grid-template-columns: 1fr; gap: 12px; }
+  .long-haul-overview { grid-template-columns: 1fr 1fr; }
+  .long-haul-row { grid-template-columns: 1fr 1fr; }
+  .long-haul-row .airport { grid-column: 1 / -1; }
   .detail-grid { grid-template-columns: 1fr; }
   .composer-area { left: 0; padding-right: 14px; padding-left: 14px; }
 }

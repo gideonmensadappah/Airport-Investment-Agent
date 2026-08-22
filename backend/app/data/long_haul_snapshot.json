@@ -1,0 +1,28 @@
+{
+  "airports": [
+    {
+      "airport": "ANC",
+      "airport_name": "Anchorage Ted Stevens",
+      "origin_location": {"lat": 61.1744, "lon": -149.996},
+      "time_zone": "America/Anchorage",
+      "retrieved_at_utc": "2026-08-22T17:15:10.008837+00:00",
+      "observation_period": "Trailing seven local days before 2026-08-22",
+      "threshold_miles": 3000.0,
+      "total_average_daily_flights": 209.27,
+      "known_distance_average_daily_flights": 209.13,
+      "long_haul_average_daily_flights": 41.27,
+      "long_haul_share_pct": 19.7,
+      "coverage_pct": 99.9,
+      "top_long_haul_routes": [
+        {"destination": "JFK", "name": "New York John F Kennedy", "distance_miles": 3377.0, "average_daily_flights": 7.43},
+        {"destination": "DFW", "name": "Dallas-Fort Worth", "distance_miles": 3038.0, "average_daily_flights": 5.71},
+        {"destination": "TPE", "name": "Taipei Taiwan Taoyuan", "distance_miles": 4672.0, "average_daily_flights": 4.43},
+        {"destination": "HKG", "name": "Hong Kong Chek Lap Kok", "distance_miles": 5073.0, "average_daily_flights": 3.71},
+        {"destination": "MIA", "name": "Miami", "distance_miles": 3999.0, "average_daily_flights": 2.86},
+        {"destination": "NLU", "name": "Mexico City Felipe Ángeles", "distance_miles": 3760.0, "average_daily_flights": 2.43},
+        {"destination": "ATL", "name": "Atlanta Hartsfield Jackson", "distance_miles": 3410.0, "average_daily_flights": 2.0},
+        {"destination": "IAH", "name": "Houston George Bush", "distance_miles": 3261.0, "average_daily_flights": 1.14}
+      ]
+    }
+  ]
+}

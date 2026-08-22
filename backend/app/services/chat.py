@@ -7,8 +7,15 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
-from app.models.analysis import AnalysisResponse, ChatResponse, DemandAnalysisResponse
+from app.models.analysis import (
+    AnalysisResponse,
+    ChatResponse,
+    DemandAnalysisResponse,
+    LongHaulAnalysisResponse,
+)
 from app.models.tool_calls import (
+    AnalyzeLongHaulArguments,
+    AnalyzeLongHaulToolCall,
     AnalyzeUnmetDemandArguments,
     AnalyzeUnmetDemandToolCall,
     ClarificationDecision,
@@ -21,6 +28,7 @@ from app.models.tool_calls import (
 from app.services.analysis import AnalysisService
 from app.services.demand import DemandService
 from app.services.intent_router import IntentRouter
+from app.services.long_haul import LongHaulService
 from app.services.openai_responses import (
     FunctionCall,
     OpenAIResponsesClient,
@@ -35,7 +43,7 @@ class UnsupportedQuestionError(ValueError):
     pass
 
 
-AnalysisResult = AnalysisResponse | DemandAnalysisResponse
+AnalysisResult = AnalysisResponse | DemandAnalysisResponse | LongHaulAnalysisResponse
 
 
 @dataclass
@@ -49,12 +57,14 @@ class ChatService:
         self,
         analysis: AnalysisService,
         demand: DemandService,
+        long_haul: LongHaulService,
         intent_router: IntentRouter,
         llm: OpenAIResponsesClient | None = None,
         max_conversations: int = 500,
     ) -> None:
         self.analysis = analysis
         self.demand = demand
+        self.long_haul = long_haul
         self.intent_router = intent_router
         self.llm = llm
         self.max_conversations = max_conversations
@@ -128,6 +138,7 @@ class ChatService:
             "compare_congestion": CompareCongestionArguments,
             "analyze_unmet_demand": AnalyzeUnmetDemandArguments,
             "rank_expansion_candidates": RankExpansionCandidatesArguments,
+            "analyze_long_haul_share": AnalyzeLongHaulArguments,
         }
         model = argument_models.get(call.name)
         if model is None:
@@ -141,6 +152,8 @@ class ChatService:
             return CompareCongestionToolCall(arguments=arguments)
         if call.name == "analyze_unmet_demand":
             return AnalyzeUnmetDemandToolCall(arguments=arguments)
+        if call.name == "analyze_long_haul_share":
+            return AnalyzeLongHaulToolCall(arguments=arguments)
         return RankExpansionCandidatesToolCall(arguments=arguments)
 
     def _execute(self, decision: RoutingDecision) -> AnalysisResult:
@@ -152,6 +165,10 @@ class ChatService:
             result = self.demand.analyze_unmet_demand(
                 decision.arguments.airport,
                 top_n=decision.arguments.top_n,
+            )
+        elif isinstance(decision, AnalyzeLongHaulToolCall):
+            result = self.long_haul.analyze_long_haul_share(
+                decision.arguments.airport,
             )
         elif isinstance(decision, CompareCongestionToolCall):
             result = self.analysis.compare_congestion(decision.arguments.airports)

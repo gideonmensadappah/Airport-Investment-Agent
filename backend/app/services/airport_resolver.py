@@ -12,6 +12,8 @@ AIRPORT_ALIASES = {
     "providence": "PVD",
     "manchester": "MHT",
     "portland": "PWM",
+    "anchorage": "ANC",
+    "ted stevens": "ANC",
 }
 
 

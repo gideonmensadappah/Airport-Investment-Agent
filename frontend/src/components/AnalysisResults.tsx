@@ -2,6 +2,7 @@ import type {
   ChatResponse,
   CongestionChatResponse,
   DemandChatResponse,
+  LongHaulChatResponse,
 } from "../types/analysis";
 import { formatNumber, formatPercent } from "../utils/formatters";
 import { RankingResults } from "./RankingResults";
@@ -17,7 +18,64 @@ export function AnalysisResults({ response }: AnalysisResultsProps) {
   if (response.tool === "rank_expansion_candidates") {
     return <RankingResults response={response} />;
   }
+  if (response.tool === "analyze_long_haul_share") {
+    return <LongHaulResults response={response} />;
+  }
   return <CongestionResults response={response} />;
+}
+
+function LongHaulResults({ response }: { response: LongHaulChatResponse }) {
+  return (
+    <section className="results-card">
+      <header>
+        <div>
+          <small>{response.origin} · {response.airport_name}</small>
+          <h2>Long-haul departure share</h2>
+        </div>
+        <strong className="headline-metric">
+          {formatNumber(response.long_haul_share_pct, "%")}
+        </strong>
+      </header>
+      <div className="long-haul-overview">
+        <div className="datum">
+          <span>Long-haul threshold</span>
+          <strong>{formatNumber(response.threshold_miles, " miles")}</strong>
+        </div>
+        <div className="datum">
+          <span>Long-haul departures / day</span>
+          <strong>{formatNumber(response.long_haul_average_daily_flights)}</strong>
+        </div>
+        <div className="datum">
+          <span>Known-distance coverage</span>
+          <strong>{formatNumber(response.coverage_pct, "%")}</strong>
+        </div>
+        <div className="datum">
+          <span>Observation period</span>
+          <strong>{response.observation_period}</strong>
+        </div>
+      </div>
+      {response.results.map((route, index) => (
+        <div className="airport-row long-haul-row" key={route.destination}>
+          <div className="airport">
+            <span className={`code code-${index}`}>{route.destination}</span>
+            <div>
+              <strong>{route.name}</strong>
+              <small>From {response.origin}</small>
+            </div>
+          </div>
+          <div className="datum">
+            <span>Average departures / day</span>
+            <strong>{formatNumber(route.average_daily_flights)}</strong>
+          </div>
+          <div className="datum">
+            <span>Great-circle distance</span>
+            <strong>{formatNumber(route.distance_miles, " miles")}</strong>
+          </div>
+        </div>
+      ))}
+      <Methodology text={response.methodology} />
+    </section>
+  );
 }
 
 function DemandResults({ response }: { response: DemandChatResponse }) {
