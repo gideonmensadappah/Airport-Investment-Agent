@@ -40,6 +40,8 @@ services:
           type: web
           name: airport-investment-agent-api
           envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_LOGROCKET_APP_ID
+        value: 4lmgsj/investment-agent
     headers:
       - path: /*
         name: X-Content-Type-Options

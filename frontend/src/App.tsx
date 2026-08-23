@@ -186,7 +186,10 @@ function App() {
             <Fragment key={turn.id}>
               <article className="message">
                 <span className="message-avatar user-avatar">DA</span>
-                <div><p className="author">You</p><p className="user-bubble">{turn.question}</p></div>
+                <div>
+                  <p className="author">You</p>
+                  <p className="user-bubble logrocket-private">{turn.question}</p>
+                </div>
               </article>
 
               {turn.status === "success" && turn.response && (
@@ -195,7 +198,7 @@ function App() {
                   ref={index === activeChat.turns.length - 1 ? latestAnswerRef : undefined}
                 >
                   <span className="message-avatar agent-avatar">A</span>
-                  <div className="answer">
+                  <div className="answer logrocket-private">
                     <div className="answer-head">
                       <div><p className="author">AirIntel Agent</p><small>AI-orchestrated · deterministic analysis</small></div>
                       <span className={`confidence confidence-${turn.response.confidence}`}>
